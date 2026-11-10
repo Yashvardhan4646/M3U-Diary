@@ -131,7 +131,7 @@ Pre-compiled, signed release APKs are available in the [`release/`](release/) di
 ### Instructions
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/M3Diary.git
+git clone https://github.com/yashvardhan4646/M3Diary.git
 cd M3Diary
 
 # Run the test suite
