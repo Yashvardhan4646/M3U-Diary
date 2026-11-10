@@ -1,0 +1,16 @@
+*.iml
+.gradle
+.kotlin
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Built outputs in app/build are ignored
+app/build/
+
+# Project release folder is kept for releases
+!release/
