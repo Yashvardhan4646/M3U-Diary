@@ -23,12 +23,23 @@ enum class AppThemePalette(val label: String, val primaryHex: Long) {
 }
 
 @Serializable
+enum class ThemeMode(val label: String) {
+    SYSTEM("System Default"),
+    LIGHT("Light Mode"),
+    DARK("Dark Mode"),
+    AMOLED("Pitch Black (AMOLED)")
+}
+
+@Serializable
 data class UserPreferences(
     val appName: String = "M3Diary",
     val appHeading: String = "My Diary",
     val selectedTheme: AppThemePalette = AppThemePalette.PURPLE,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isAppLockEnabled: Boolean = false,
     val appLockPin: String = "",
+    val biometricUnlockEnabled: Boolean = true,
+    val appSwitcherPrivacyEnabled: Boolean = false,
     val reminderEnabled: Boolean = false,
     val reminderHour: Int = 20,
     val reminderMinute: Int = 0
@@ -99,8 +110,23 @@ class PreferencesRepository(private val context: Context) {
         persistPreferences(updated)
     }
 
-    suspend fun updateTheme(palette: AppThemePalette) {
-        val updated = _preferences.value.copy(selectedTheme = palette)
+    suspend fun updateTheme(palette: AppThemePalette, mode: ThemeMode = _preferences.value.themeMode) {
+        val updated = _preferences.value.copy(selectedTheme = palette, themeMode = mode)
+        persistPreferences(updated)
+    }
+
+    suspend fun updateThemeMode(mode: ThemeMode) {
+        val updated = _preferences.value.copy(themeMode = mode)
+        persistPreferences(updated)
+    }
+
+    suspend fun updateBiometricUnlock(enabled: Boolean) {
+        val updated = _preferences.value.copy(biometricUnlockEnabled = enabled)
+        persistPreferences(updated)
+    }
+
+    suspend fun updateAppSwitcherPrivacy(enabled: Boolean) {
+        val updated = _preferences.value.copy(appSwitcherPrivacyEnabled = enabled)
         persistPreferences(updated)
     }
 

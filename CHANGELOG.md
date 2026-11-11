@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-11-11
+
+### Added
+- **View-Only Reader Mode & Instant Edit**:
+  - Viewing existing reflections or newly saved entries renders in a distraction-free reader layout.
+  - Prominent title typography, mood emoji & description badge, category icon badge, metadata chips (formatted date, time, word count), and attached photo gallery with tap-to-zoom.
+  - Prominent **Edit button** (`Icons.Rounded.Edit`) on the top-right app bar for one-tap transition into edit mode.
+  - Copy reflection text action and entry deletion confirmation.
+- **Guided Journaling Templates**:
+  - 5 structured reflection prompts: `🌅 Morning Gratitude`, `🌙 Evening Reflection`, `🏛️ Daily Stoic`, `💡 Brain Dump`, and `🌿 Mindful Check-in`.
+  - One-tap insertion into the journal content area.
+- **"On This Day" Flashbacks**:
+  - Hero memory card on `HomeScreen` highlighting past entries from previous years or earlier dates.
+  - One-tap link directly into the View-Only reader mode.
+- **Biometric Unlock (Fingerprint / Face ID)**:
+  - Native biometric authentication (`BiometricPrompt` & `FingerprintManagerCompat`) supporting Android 9+ and legacy devices.
+  - Visual fingerprint key on the lock screen keypad and configurable toggle in Settings.
+- **Material 3 Dark Mode & AMOLED Pitch Black**:
+  - 4 theme appearance modes: `System Default`, `Light Mode`, `Dark Mode`, and `Pitch Black (AMOLED)`.
+  - True `#000000` deep black styling saving OLED battery life across all 5 color palettes.
+- **App Switcher Privacy (`FLAG_SECURE`)**:
+  - Toggle in Settings to mask app content in the recent apps multitask overview and block external screenshot capture.
+
+---
+
 ## [1.0.0] - 2026-11-10
 
 ### Added

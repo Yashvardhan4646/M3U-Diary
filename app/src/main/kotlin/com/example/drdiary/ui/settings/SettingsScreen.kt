@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Title
@@ -59,6 +61,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -313,13 +317,13 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.width(14.dp))
                             Column {
                                 Text(
-                                    text = "Color Theme",
+                                    text = "Theme & Appearance",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = preferences.selectedTheme.label,
+                                    text = "${preferences.selectedTheme.label} • ${preferences.themeMode.label}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -544,6 +548,134 @@ fun SettingsScreen(
                         Text("Lock App Now")
                     }
                 }
+
+                // Biometric Unlock Toggle
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Fingerprint,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = "Biometric Unlock",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Unlock with fingerprint or face ID alongside PIN",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = preferences.biometricUnlockEnabled,
+                                onCheckedChange = { isChecked ->
+                                    scope.launch {
+                                        preferencesRepository.updateBiometricUnlock(isChecked)
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // App Switcher Privacy (FLAG_SECURE)
+            item {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Security,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = "Hide in App Switcher",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Blurs recent apps preview and blocks screen capture",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = preferences.appSwitcherPrivacyEnabled,
+                            onCheckedChange = { isChecked ->
+                                scope.launch {
+                                    preferencesRepository.updateAppSwitcherPrivacy(isChecked)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
             }
 
             // Data Management Section
@@ -702,9 +834,15 @@ fun SettingsScreen(
     if (showThemeDialog) {
         ThemeSelectionDialog(
             currentPalette = preferences.selectedTheme,
+            currentMode = preferences.themeMode,
             onSelectPalette = { palette ->
                 scope.launch {
                     preferencesRepository.updateTheme(palette)
+                }
+            },
+            onSelectMode = { mode ->
+                scope.launch {
+                    preferencesRepository.updateThemeMode(mode)
                 }
             },
             onDismiss = { showThemeDialog = false }

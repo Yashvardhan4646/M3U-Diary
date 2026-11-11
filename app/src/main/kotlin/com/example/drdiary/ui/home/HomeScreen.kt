@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -146,6 +148,30 @@ fun HomeScreen(
             }
         } else {
             baseList
+        }
+    }
+
+    // "On This Day" Flashback Memory calculation
+    val flashbackEntry: DiaryEntry? = remember(entries) {
+        if (entries.size < 2) null
+        else {
+            val today = java.util.Calendar.getInstance()
+            val todayMonth = today.get(java.util.Calendar.MONTH)
+            val todayDay = today.get(java.util.Calendar.DAY_OF_MONTH)
+            val todayYear = today.get(java.util.Calendar.YEAR)
+
+            // 1. Anniversary match (same month/day in past year)
+            val anniversaryMatch = entries.find { e ->
+                val cal = java.util.Calendar.getInstance().apply { timeInMillis = e.dateMillis }
+                cal.get(java.util.Calendar.MONTH) == todayMonth &&
+                        cal.get(java.util.Calendar.DAY_OF_MONTH) == todayDay &&
+                        cal.get(java.util.Calendar.YEAR) < todayYear
+            }
+
+            anniversaryMatch ?: entries.filter { e ->
+                val diffDays = (System.currentTimeMillis() - e.dateMillis) / (1000 * 60 * 60 * 24)
+                diffDays >= 1
+            }.maxByOrNull { it.isFavorite } ?: entries.lastOrNull()
         }
     }
 
@@ -542,6 +568,111 @@ fun HomeScreen(
                     }
                 }
 
+                // "On This Day" Memory Flashback Hero Card
+                if (searchQuery.isBlank() && currentFilter == DiaryFilter.ALL_ENTRIES && selectedDestination == HomeBottomNavDestination.HOME && flashbackEntry != null) {
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .clickable { onNavigateToEditor(flashbackEntry.id) }
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "ON THIS DAY • FLASHBACK",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    Text(
+                                        text = flashbackEntry.dateFormatted,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Text(
+                                    text = flashbackEntry.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                if (flashbackEntry.content.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = flashbackEntry.content.take(120) + if (flashbackEntry.content.length > 120) "..." else "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surface
+                                    ) {
+                                        Text(
+                                            text = "${flashbackEntry.mood.emoji} ${flashbackEntry.mood.displayName}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "Read Memory",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Empty State with Load Sample action
                 if (displayedEntries.isEmpty()) {
                     item {
@@ -672,9 +803,15 @@ fun HomeScreen(
     if (showThemeDialog) {
         ThemeSelectionDialog(
             currentPalette = preferences.selectedTheme,
+            currentMode = preferences.themeMode,
             onSelectPalette = { palette ->
                 scope.launch {
                     preferencesRepository.updateTheme(palette)
+                }
+            },
+            onSelectMode = { mode ->
+                scope.launch {
+                    preferencesRepository.updateThemeMode(mode)
                 }
             },
             onDismiss = { showThemeDialog = false }

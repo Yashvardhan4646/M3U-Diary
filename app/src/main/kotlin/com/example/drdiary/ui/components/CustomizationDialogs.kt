@@ -18,11 +18,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
@@ -57,12 +61,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.drdiary.data.AppThemePalette
 import com.example.drdiary.data.ReminderScheduler
+import com.example.drdiary.data.ThemeMode
 import com.example.drdiary.data.UserPreferences
 
 @Composable
 fun ThemeSelectionDialog(
     currentPalette: AppThemePalette,
+    currentMode: ThemeMode = ThemeMode.SYSTEM,
     onSelectPalette: (AppThemePalette) -> Unit,
+    onSelectMode: (ThemeMode) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -76,23 +83,69 @@ fun ThemeSelectionDialog(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Select Color Theme",
+                    text = "Theme & Appearance",
                     style = MaterialTheme.typography.titleLarge
                 )
             }
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // 1. Appearance Mode
                 Text(
-                    text = "All screens and components adapt to your selected Material 3 Expressive palette:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "APPEARANCE MODE",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        ThemeMode.SYSTEM to "System",
+                        ThemeMode.LIGHT to "Light",
+                        ThemeMode.DARK to "Dark",
+                        ThemeMode.AMOLED to "AMOLED"
+                    ).forEach { (mode, label) ->
+                        val isChosen = currentMode == mode
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isChosen) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable { onSelectMode(mode) }
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (isChosen) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isChosen) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // 2. Palette Selection
+                Text(
+                    text = "ACCENT COLOR PALETTE",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
 
                 AppThemePalette.values().forEach { palette ->
                     val isSelected = currentPalette == palette
@@ -107,14 +160,14 @@ fun ThemeSelectionDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(32.dp)
                                         .clip(CircleShape)
                                         .background(Color(palette.primaryHex)),
                                     contentAlignment = Alignment.Center
@@ -124,15 +177,15 @@ fun ThemeSelectionDialog(
                                             imageVector = Icons.Rounded.Check,
                                             contentDescription = null,
                                             tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.width(14.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
                                         text = palette.label,
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -144,7 +197,7 @@ fun ThemeSelectionDialog(
                                             AppThemePalette.ROSE -> "Berry Crimson (#9C4146)"
                                             AppThemePalette.AMBER -> "Warm Sunset Gold (#865300)"
                                         },
-                                        style = MaterialTheme.typography.bodySmall,
+                                        style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }

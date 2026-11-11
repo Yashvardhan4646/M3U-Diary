@@ -55,6 +55,7 @@ fun AppNavigation(
         AppLockScreen(
             expectedPin = preferences.appLockPin,
             appName = preferences.appName,
+            biometricEnabled = preferences.biometricUnlockEnabled,
             onUnlocked = { preferencesRepository.unlockSession() },
             onResetLock = {
                 scope.launch {
@@ -152,6 +153,7 @@ fun AppNavigation(
                 EntryEditorScreen(
                     entryId = screen.entryId,
                     repository = repository,
+                    initialDateMillis = screen.initialDateMillis,
                     onNavigateBack = { navigateBack() },
                     onNavigateHome = { navigateToTab(Screen.Home) },
                     onNavigateMood = { navigateToTab(Screen.MoodAnalytics) },

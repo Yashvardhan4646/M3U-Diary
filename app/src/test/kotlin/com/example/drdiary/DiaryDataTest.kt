@@ -1,9 +1,16 @@
 package com.example.drdiary
 
+import com.example.drdiary.data.AppThemePalette
 import com.example.drdiary.data.DiaryEntry
 import com.example.drdiary.data.EntryIcon
 import com.example.drdiary.data.Mood
+import com.example.drdiary.data.ThemeMode
+import com.example.drdiary.data.UserPreferences
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -56,5 +63,56 @@ class DiaryDataTest {
 
         assertEquals(3, list.size)
         assertTrue(list.any { it.id == "user-personal-entry-1" })
+    }
+
+    @Test
+    fun testUserPreferencesSerialization() {
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val prefs = UserPreferences(
+            appName = "M3Diary",
+            appHeading = "My Reflections",
+            selectedTheme = AppThemePalette.OCEAN_BLUE,
+            themeMode = ThemeMode.AMOLED,
+            isAppLockEnabled = true,
+            appLockPin = "1234",
+            biometricUnlockEnabled = true,
+            appSwitcherPrivacyEnabled = true
+        )
+        val serialized = json.encodeToString(prefs)
+        val deserialized = json.decodeFromString<UserPreferences>(serialized)
+
+        assertEquals("M3Diary", deserialized.appName)
+        assertEquals(ThemeMode.AMOLED, deserialized.themeMode)
+        assertEquals(AppThemePalette.OCEAN_BLUE, deserialized.selectedTheme)
+        assertTrue(deserialized.biometricUnlockEnabled)
+        assertTrue(deserialized.appSwitcherPrivacyEnabled)
+    }
+
+    @Test
+    fun testFlashbackSelectionLogic() {
+        val today = java.util.Calendar.getInstance()
+        val todayMonth = today.get(java.util.Calendar.MONTH)
+        val todayDay = today.get(java.util.Calendar.DAY_OF_MONTH)
+        val todayYear = today.get(java.util.Calendar.YEAR)
+
+        val oneYearAgoCal = java.util.Calendar.getInstance().apply {
+            set(todayYear - 1, todayMonth, todayDay, 12, 0, 0)
+        }
+
+        val entries = listOf(
+            DiaryEntry(id = "e1", title = "Today", content = "Today note", dateMillis = today.timeInMillis, dateFormatted = "Today"),
+            DiaryEntry(id = "e2", title = "Flashback", content = "One year ago note", dateMillis = oneYearAgoCal.timeInMillis, dateFormatted = "1 Year Ago")
+        )
+
+        val anniversaryMatch = entries.find { e ->
+            val cal = java.util.Calendar.getInstance().apply { timeInMillis = e.dateMillis }
+            cal.get(java.util.Calendar.MONTH) == todayMonth &&
+                    cal.get(java.util.Calendar.DAY_OF_MONTH) == todayDay &&
+                    cal.get(java.util.Calendar.YEAR) < todayYear
+        }
+
+        assertNotNull(anniversaryMatch)
+        assertEquals("e2", anniversaryMatch?.id)
+        assertEquals("Flashback", anniversaryMatch?.title)
     }
 }

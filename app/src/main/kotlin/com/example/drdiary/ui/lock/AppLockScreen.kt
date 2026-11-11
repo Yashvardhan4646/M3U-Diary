@@ -1,5 +1,6 @@
 package com.example.drdiary.ui.lock
 
+import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,14 +25,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Backspace
+import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,25 +45,49 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.drdiary.R
+import com.example.drdiary.data.BiometricHelper
 import com.example.drdiary.ui.components.pressScale
 
 @Composable
 fun AppLockScreen(
     expectedPin: String,
     appName: String,
+    biometricEnabled: Boolean = true,
     onUnlocked: () -> Unit,
     onResetLock: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val isBiometricSupported = remember { BiometricHelper.isBiometricAvailable(context) }
+
     var enteredPin by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var showForgotDialog by remember { mutableStateOf(false) }
+
+    val triggerBiometric = {
+        if (activity != null && isBiometricSupported && biometricEnabled) {
+            BiometricHelper.promptBiometric(
+                activity = activity,
+                title = "Unlock $appName",
+                subtitle = "Confirm fingerprint to unlock your journal",
+                onSuccess = onUnlocked
+            )
+        }
+    }
+
+    LaunchedEffect(isBiometricSupported, biometricEnabled) {
+        if (isBiometricSupported && biometricEnabled) {
+            triggerBiometric()
+        }
+    }
 
     fun onDigitPress(digit: String) {
         if (enteredPin.length < 4) {
@@ -206,7 +235,7 @@ fun AppLockScreen(
                     listOf("1", "2", "3"),
                     listOf("4", "5", "6"),
                     listOf("7", "8", "9"),
-                    listOf("CLEAR", "0", "BACK")
+                    listOf(if (isBiometricSupported && biometricEnabled) "BIOMETRIC" else "CLEAR", "0", "BACK")
                 )
 
                 rows.forEach { row ->
@@ -216,6 +245,23 @@ fun AppLockScreen(
                     ) {
                         row.forEach { item ->
                             when (item) {
+                                "BIOMETRIC" -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(72.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer)
+                                            .pressScale(onClick = { triggerBiometric() }),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Fingerprint,
+                                            contentDescription = "Unlock with Biometrics",
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                }
                                 "BACK" -> {
                                     Box(
                                         modifier = Modifier

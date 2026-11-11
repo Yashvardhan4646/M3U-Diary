@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#-downloads--releases"><img src="https://img.shields.io/badge/Release-v1.0.0-6750A4?style=for-the-badge&logo=android&logoColor=white" alt="Release" /></a>
+  <a href="#-downloads--releases"><img src="https://img.shields.io/badge/Release-v1.1.0-6750A4?style=for-the-badge&logo=android&logoColor=white" alt="Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge" alt="License" /></a>
   <img src="https://img.shields.io/badge/Platform-Android_7.0%2B_(API_24--36)-brightgreen?style=for-the-badge&logo=android" alt="Platform" />
   <img src="https://img.shields.io/badge/Design-Material_3_Expressive-purple?style=for-the-badge" alt="Material 3 Expressive" />
@@ -40,15 +40,27 @@
   - 🟢 **Botanical Emerald** (`#006C4C`)
   - 🔴 **Berry Rose** (`#9C4146`)
   - 🟠 **Warm Amber** (`#865300`)
+- **Dark Mode & Pitch Black (AMOLED)**: 4 theme appearance modes (`System Default`, `Light Mode`, `Dark Mode`, and true OLED battery-saving `AMOLED Pitch Black`) supporting all 5 color palettes.
 - **Expressive Shapes & Motion**: Pill-shaped action buttons, 20dp cards, 28dp modal dialogs, 16dp text fields and FABs, standard non-bouncing transitions (`MotionScheme.standard()`), and tactile press-scale feedback on all tappable components.
 - **120Hz / 90Hz Display Mode**: Optimized for silky-smooth high refresh rate displays.
 
-### ✍️ Daily Reflections & Journaling
-- **Auto-Fetching Date & Time**: Initializes new entries with the exact current timestamp and formatted time, with modal M3 `DatePicker` and `TimePicker` dialogs.
+### 📖 View-Only Reader Mode & Instant Edit
+- **Distraction-Free Reading**: Existing reflections and newly saved entries open in an elegant Material 3 reader format.
+- **Prominent Edit Button on Top Right**: One-tap toggle (`Icons.Rounded.Edit`) transitions smoothly into edit mode.
+- **Rich Metadata Badges**: Prominent headline typography, mood emoji & description badge, category indicator, formatted date/time chips, word count, and copy text action.
+- **Media Viewer Carousel**: High-resolution attached photo cards with tap-to-enlarge full-screen preview.
+
+### ✍️ Guided Reflections & Journaling
+- **5 Guided Templates**: One-tap structured prompts (`🌅 Morning Gratitude`, `🌙 Evening Reflection`, `🏛️ Daily Stoic`, `💡 Brain Dump`, `🌿 Mindful Check-in`).
+- **Auto-Fetching Date & Time**: Initializes new entries with current timestamp and formatted time, with modal M3 `DatePicker` and `TimePicker` dialogs.
 - **Responsive 2×2 Mood Grid**: Sized and padded for all screen resolutions (`😊 Happy`, `😌 Calm`, `🤔 Reflective`, `⚡ Energetic`).
 - **Category Icon Selector**: 5 expressive categories (Reflection, Ideas, Gratitude, Personal, Journal).
 - **Attached Media**: Capture photos via camera intent (`FileProvider`) or pick from device gallery with zoom preview and delete overlay.
 - **Word & Character Statistics**: Real-time counter while composing reflections.
+
+### ✨ "On This Day" Memory Flashbacks
+- Highlights reflections written on the same calendar day in past years or meaningful older memories.
+- Featured directly on the Home Screen feed with one-tap navigation to the reader view.
 
 ### 🗂️ Working Navigation Sidebar (Drawer)
 - Material 3 `ModalNavigationDrawer` (`ModalDrawerSheet`) with smooth slide-in gesture.
@@ -73,9 +85,11 @@
 - Configurable reminder time with M3 `TimePicker`.
 - **"Send Test Notification Now"** button for instant status bar verification.
 
-### 🔒 App Lock & PIN Security
-- 4-digit PIN lock screen with an animated numeric keypad, circular PIN indicators, and "Forgot PIN" reset protection.
-- Instant **"Lock App Now"** capability from the sidebar or settings.
+### 🔒 Biometric Security & App Lock
+- **Biometric Unlock**: Fingerprint and face ID recognition powered by native Android `BiometricPrompt` and `FingerprintManagerCompat`.
+- **4-Digit PIN Lock**: Custom animated numeric keypad, indicator dots, and "Forgot PIN" reset protection.
+- **App Switcher Privacy (`FLAG_SECURE`)**: Blurs / blocks app content preview in Android's recent apps switcher and blocks external screenshot capture.
+- **Instant Lock**: Lock app immediately from the navigation sidebar or settings.
 
 ### 🛡️ 100% Offline Privacy Sandbox
 - Stored exclusively in local device sandbox (`context.filesDir/diary_entries.json`).
@@ -118,6 +132,7 @@ Pre-compiled, signed release APKs are available in the [`release/`](release/) di
 
 | Version | Artifact | Size | SHA-256 Checksum | Signature |
 | :--- | :--- | :--- | :--- | :--- |
+| **v1.1.0 (Latest)** | [`M3Diary-v1.1.0-release.apk`](release/M3Diary-v1.1.0-release.apk) | 12.23 MB | `2635F339533770F892C6186E63835E3C8E3BDCA6466BC940835E8D40FBF7C793` | Scheme v2 (Signed) |
 | **v1.0.0** | [`M3Diary-v1.0.0-release.apk`](release/M3Diary-v1.0.0-release.apk) | 12.78 MB | `32C18B79C24477268704B8A2D0C91CD84A94B48867F0AA064B7983759337EE5A` | Scheme v2 (Signed) |
 
 ---
