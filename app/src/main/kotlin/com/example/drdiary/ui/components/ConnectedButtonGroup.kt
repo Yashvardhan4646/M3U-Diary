@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.text.style.TextOverflow
+
 enum class DiaryFilter {
     FAVORITES,
     ALL_ENTRIES
@@ -30,7 +33,7 @@ enum class DiaryFilter {
 
 /**
  * M3 Expressive Connected Button Group (56dp tall, 3dp gap, 8dp inner corners, 28dp outer corners).
- * Centered near the top of the screen.
+ * Centered near the top of the screen. Responsive and overflow-proof.
  */
 @Composable
 fun ConnectedButtonGroup(
@@ -55,6 +58,7 @@ fun ConnectedButtonGroup(
 
     Row(
         modifier = modifier
+            .fillMaxWidth()
             .height(56.dp)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
@@ -75,6 +79,7 @@ fun ConnectedButtonGroup(
 
         Box(
             modifier = Modifier
+                .weight(1f)
                 .height(56.dp)
                 .clip(leftShape)
                 .background(favBgColor)
@@ -84,7 +89,7 @@ fun ConnectedButtonGroup(
                     } else Modifier
                 )
                 .pressScale(onClick = { onFilterSelected(DiaryFilter.FAVORITES) })
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
@@ -95,13 +100,15 @@ fun ConnectedButtonGroup(
                     imageVector = Icons.Rounded.Favorite,
                     contentDescription = null,
                     tint = favTextColor,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = if (favoritesCount > 0) "Favorites ($favoritesCount)" else "Favorites",
                     style = MaterialTheme.typography.labelLarge,
-                    color = favTextColor
+                    color = favTextColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -123,6 +130,7 @@ fun ConnectedButtonGroup(
 
         Box(
             modifier = Modifier
+                .weight(1f)
                 .height(56.dp)
                 .clip(rightShape)
                 .background(allBgColor)
@@ -132,7 +140,7 @@ fun ConnectedButtonGroup(
                     } else Modifier
                 )
                 .pressScale(onClick = { onFilterSelected(DiaryFilter.ALL_ENTRIES) })
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
@@ -143,13 +151,15 @@ fun ConnectedButtonGroup(
                     imageVector = Icons.AutoMirrored.Rounded.ViewList,
                     contentDescription = null,
                     tint = allTextColor,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = if (allCount > 0) "All Entries ($allCount)" else "All Entries",
                     style = MaterialTheme.typography.labelLarge,
-                    color = allTextColor
+                    color = allTextColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

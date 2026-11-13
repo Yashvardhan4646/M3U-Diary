@@ -455,8 +455,8 @@ fun RenameAppDialog(
     onSave: (String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var heading by remember { mutableStateOf(initialHeading) }
+    var name by remember(initialName) { mutableStateOf(initialName) }
+    var heading by remember(initialHeading) { mutableStateOf(initialHeading) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

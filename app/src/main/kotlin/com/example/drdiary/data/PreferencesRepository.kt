@@ -91,14 +91,23 @@ class PreferencesRepository(private val context: Context) {
     }
 
     private suspend fun persistPreferences(prefs: UserPreferences) = withContext(Dispatchers.IO) {
+        _preferences.value = prefs
         try {
             val content = json.encodeToString(prefs)
             val temp = File(context.filesDir, "user_preferences.json.tmp")
             temp.writeText(content)
-            temp.renameTo(file)
-            _preferences.value = prefs
+            if (file.exists()) file.delete()
+            if (!temp.renameTo(file)) {
+                temp.copyTo(file, overwrite = true)
+                temp.delete()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
+            try {
+                file.writeText(json.encodeToString(prefs))
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            }
         }
     }
 

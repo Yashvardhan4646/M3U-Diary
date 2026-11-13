@@ -1,9 +1,13 @@
 package com.example.drdiary.ui.editor
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -18,6 +22,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -52,14 +57,19 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Inbox
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -72,6 +82,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -80,6 +91,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -89,8 +102,10 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -100,19 +115,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.example.drdiary.data.AudioNoteManager
 import com.example.drdiary.data.DiaryEntry
 import com.example.drdiary.data.DiaryRepository
 import com.example.drdiary.data.EntryIcon
 import com.example.drdiary.data.Mood
 import com.example.drdiary.ui.components.pressScale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -141,8 +161,6 @@ fun EntryEditorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var currentEntryId by remember { mutableStateOf(entryId) }
-    // If opening an existing entry, start in View-Only reader mode.
-    // If creating a new entry, start in Edit mode.
     var isViewingMode by remember { mutableStateOf(entryId != null) }
 
     var title by remember { mutableStateOf("") }
@@ -151,15 +169,15 @@ fun EntryEditorScreen(
     var selectedIcon by remember { mutableStateOf(EntryIcon.INBOX) }
     var isFavorite by remember { mutableStateOf(false) }
 
-    // Auto-fetch current date and time by default
     val currentTime = remember {
         SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
     }
     var selectedDateMillis by remember { mutableLongStateOf(initialDateMillis ?: System.currentTimeMillis()) }
     var selectedTimeFormatted by remember { mutableStateOf(currentTime) }
 
-    // Attached images list
     val attachedImages = remember { mutableStateListOf<String>() }
+    var attachedAudioUri by remember { mutableStateOf<String?>(null) }
+    var attachedAudioDurationMs by remember { mutableLongStateOf(0L) }
 
     var titleError by remember { mutableStateOf<String?>(null) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
@@ -168,7 +186,18 @@ fun EntryEditorScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var previewImageDialogPath by remember { mutableStateOf<String?>(null) }
 
-    // Temporary camera capture Uri
+    // Audio recording state
+    var isRecordingAudio by remember { mutableStateOf(false) }
+    var recordingElapsedMs by remember { mutableLongStateOf(0L) }
+    var activeRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var activeRecordingFile by remember { mutableStateOf<File?>(null) }
+
+    // Audio player state
+    var isAudioPlaying by remember { mutableStateOf(false) }
+    var currentAudioProgressMs by remember { mutableLongStateOf(0L) }
+    var activeMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Temporary camera capture Uri & File
     var tempCameraImageUri by remember { mutableStateOf<Uri?>(null) }
     var tempCameraFile by remember { mutableStateOf<File?>(null) }
 
@@ -183,10 +212,45 @@ fun EntryEditorScreen(
                     tempCameraFile!!.copyTo(targetFile, overwrite = true)
                     withContext(Dispatchers.Main) {
                         attachedImages.add(targetFile.absolutePath)
+                        snackbarHostState.showSnackbar("Photo attached")
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+            }
+        }
+    }
+
+    fun launchCameraSafe() {
+        try {
+            val cameraDir = File(context.filesDir, "entry_images").apply { mkdirs() }
+            val tempFile = File(cameraDir, "capture_temp_${System.currentTimeMillis()}.jpg").apply {
+                createNewFile()
+            }
+            tempCameraFile = tempFile
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                tempFile
+            )
+            tempCameraImageUri = uri
+            cameraLauncher.launch(uri)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            scope.launch {
+                snackbarHostState.showSnackbar("Camera unavailable: ${e.localizedMessage ?: "Unknown error"}")
+            }
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchCameraSafe()
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Camera permission is required to take photos")
             }
         }
     }
@@ -206,11 +270,149 @@ fun EntryEditorScreen(
                     }
                     withContext(Dispatchers.Main) {
                         attachedImages.add(targetFile.absolutePath)
+                        snackbarHostState.showSnackbar("Photo attached")
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
+        }
+    }
+
+    // Audio recording timer loop
+    LaunchedEffect(isRecordingAudio) {
+        if (isRecordingAudio) {
+            val start = System.currentTimeMillis()
+            while (isRecordingAudio) {
+                recordingElapsedMs = System.currentTimeMillis() - start
+                delay(200)
+            }
+        } else {
+            recordingElapsedMs = 0L
+        }
+    }
+
+    // Audio playback progress loop
+    LaunchedEffect(isAudioPlaying) {
+        if (isAudioPlaying) {
+            while (isAudioPlaying && activeMediaPlayer != null) {
+                try {
+                    currentAudioProgressMs = activeMediaPlayer?.currentPosition?.toLong() ?: 0L
+                } catch (_: Exception) {}
+                delay(150)
+            }
+        }
+    }
+
+    fun startAudioRecordingSafe() {
+        try {
+            // Stop playback if running
+            activeMediaPlayer?.stop()
+            activeMediaPlayer?.release()
+            activeMediaPlayer = null
+            isAudioPlaying = false
+
+            val file = AudioNoteManager.createAudioFile(context)
+            activeRecordingFile = file
+            val recorder = AudioNoteManager.startRecording(context, file)
+            activeRecorder = recorder
+            isRecordingAudio = true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            isRecordingAudio = false
+            activeRecorder = null
+            scope.launch {
+                snackbarHostState.showSnackbar("Microphone unavailable: ${e.localizedMessage ?: "Recording failed"}")
+            }
+        }
+    }
+
+    fun stopAudioRecordingSafe(save: Boolean) {
+        try {
+            val recorder = activeRecorder
+            activeRecorder = null
+            isRecordingAudio = false
+            val success = AudioNoteManager.stopRecording(recorder)
+
+            val file = activeRecordingFile
+            activeRecordingFile = null
+
+            if (save && success && file != null && file.exists() && file.length() > 0) {
+                attachedAudioUri = file.absolutePath
+                attachedAudioDurationMs = recordingElapsedMs.coerceAtLeast(1000L)
+                scope.launch {
+                    snackbarHostState.showSnackbar("Voice note saved (${AudioNoteManager.formatDuration(attachedAudioDurationMs)})")
+                }
+            } else if (!save) {
+                file?.delete()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startAudioRecordingSafe()
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Audio recording permission is required")
+            }
+        }
+    }
+
+    fun toggleAudioPlayback() {
+        val path = attachedAudioUri ?: return
+        if (isAudioPlaying) {
+            try {
+                activeMediaPlayer?.pause()
+                isAudioPlaying = false
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else {
+            try {
+                if (activeMediaPlayer == null) {
+                    val player = AudioNoteManager.createMediaPlayer(
+                        filePath = path,
+                        onPrepared = { dur ->
+                            if (attachedAudioDurationMs <= 0L) {
+                                attachedAudioDurationMs = dur
+                            }
+                        },
+                        onCompletion = {
+                            isAudioPlaying = false
+                            currentAudioProgressMs = 0L
+                        },
+                        onError = { errMsg ->
+                            isAudioPlaying = false
+                            scope.launch { snackbarHostState.showSnackbar(errMsg) }
+                        }
+                    )
+                    activeMediaPlayer = player
+                }
+                activeMediaPlayer?.start()
+                isAudioPlaying = true
+            } catch (e: Exception) {
+                e.printStackTrace()
+                isAudioPlaying = false
+            }
+        }
+    }
+
+    // Release player and recorder resources when leaving screen
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                if (isRecordingAudio) {
+                    AudioNoteManager.stopRecording(activeRecorder)
+                    activeRecordingFile?.delete()
+                }
+                activeMediaPlayer?.release()
+                activeMediaPlayer = null
+            } catch (_: Exception) {}
         }
     }
 
@@ -229,16 +431,16 @@ fun EntryEditorScreen(
                 selectedTimeFormatted = existing.timeFormatted
                 attachedImages.clear()
                 attachedImages.addAll(existing.imageUris)
+                attachedAudioUri = existing.audioUri
+                attachedAudioDurationMs = existing.audioDurationMs
             }
         }
     }
 
-    // Modal DatePicker state
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = selectedDateMillis
     )
 
-    // Modal TimePicker state
     val calendar = remember { Calendar.getInstance() }
     val timePickerState = rememberTimePickerState(
         initialHour = calendar.get(Calendar.HOUR_OF_DAY),
@@ -246,17 +448,18 @@ fun EntryEditorScreen(
         is24Hour = false
     )
 
-    // Back handling: If in edit mode for an existing entry, back switches to view-only mode
     BackHandler(enabled = !isViewingMode && currentEntryId != null) {
         isViewingMode = true
     }
 
-    // Save action logic
     val onSave: () -> Unit = {
         if (title.isBlank()) {
             titleError = "Title cannot be empty"
         } else {
             titleError = null
+            if (isRecordingAudio) {
+                stopAudioRecordingSafe(save = true)
+            }
             scope.launch {
                 val formattedDate = DiaryRepository.formatDate(selectedDateMillis)
                 val idToSave = currentEntryId ?: UUID.randomUUID().toString()
@@ -271,6 +474,8 @@ fun EntryEditorScreen(
                     isFavorite = isFavorite,
                     icon = selectedIcon,
                     imageUris = attachedImages.toList(),
+                    audioUri = attachedAudioUri,
+                    audioDurationMs = attachedAudioDurationMs,
                     createdAt = System.currentTimeMillis()
                 )
                 repository.saveEntry(newEntry)
@@ -294,13 +499,13 @@ fun EntryEditorScreen(
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.statusBars)
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
-                            .padding(horizontal = 8.dp)
+                            .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Left Back / Cancel button
                         IconButton(
                             onClick = {
                                 if (!isViewingMode && currentEntryId != null) {
@@ -309,9 +514,7 @@ fun EntryEditorScreen(
                                     onNavigateBack()
                                 }
                             },
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .size(48.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 imageVector = if (!isViewingMode && currentEntryId != null) Icons.Rounded.Close else Icons.AutoMirrored.Rounded.ArrowBack,
@@ -321,7 +524,6 @@ fun EntryEditorScreen(
                             )
                         }
 
-                        // Centered Title
                         Text(
                             text = if (isViewingMode) {
                                 "Diary Reflection"
@@ -333,16 +535,17 @@ fun EntryEditorScreen(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.align(Alignment.Center)
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
                         )
 
-                        // Right Top App Bar actions
                         Row(
-                            modifier = Modifier.align(Alignment.CenterEnd),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (isViewingMode) {
-                                // Favorite Star Toggle in View Mode
                                 IconButton(
                                     onClick = {
                                         currentEntryId?.let { id ->
@@ -362,7 +565,6 @@ fun EntryEditorScreen(
                                     )
                                 }
 
-                                // Delete Button in View Mode
                                 IconButton(
                                     onClick = { showDeleteConfirmation = true },
                                     modifier = Modifier.size(44.dp)
@@ -375,7 +577,6 @@ fun EntryEditorScreen(
                                     )
                                 }
 
-                                // Prominent EDIT BUTTON ON TOP RIGHT as requested!
                                 IconButton(
                                     onClick = { isViewingMode = false },
                                     modifier = Modifier
@@ -390,7 +591,6 @@ fun EntryEditorScreen(
                                     )
                                 }
                             } else {
-                                // Check/Save in Edit Mode
                                 IconButton(
                                     onClick = onSave,
                                     modifier = Modifier.size(44.dp)
@@ -449,6 +649,8 @@ fun EntryEditorScreen(
                                                 title = ""
                                                 content = ""
                                                 attachedImages.clear()
+                                                attachedAudioUri = null
+                                                attachedAudioDurationMs = 0L
                                                 showOptionsMenu = false
                                             }
                                         )
@@ -576,7 +778,6 @@ fun EntryEditorScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Mood pill badge
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -596,7 +797,6 @@ fun EntryEditorScreen(
                         }
                     }
 
-                    // Category icon badge
                     val iconVec = when (selectedIcon) {
                         EntryIcon.INBOX -> Icons.Rounded.Inbox
                         EntryIcon.STAR -> Icons.Rounded.Star
@@ -640,7 +840,6 @@ fun EntryEditorScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Date chip
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow
@@ -664,7 +863,6 @@ fun EntryEditorScreen(
                         }
                     }
 
-                    // Time chip
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow
@@ -688,7 +886,6 @@ fun EntryEditorScreen(
                         }
                     }
 
-                    // Word count chip
                     val words = if (content.isBlank()) 0 else content.trim().split(Regex("\\s+")).size
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -703,9 +900,82 @@ fun EntryEditorScreen(
                     }
                 }
 
+                // 4. Voice Audio Player in Reader Mode (if audio attached)
+                if (attachedAudioUri != null) {
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .clickable { toggleAudioPlayback() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isAudioPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                    contentDescription = if (isAudioPlaying) "Pause voice note" else "Play voice note",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(14.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Voice Note Reflection",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = AudioNoteManager.formatDuration(
+                                            if (isAudioPlaying) currentAudioProgressMs else attachedAudioDurationMs
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                val progressFraction = if (attachedAudioDurationMs > 0L) {
+                                    (currentAudioProgressMs.toFloat() / attachedAudioDurationMs.toFloat()).coerceIn(0f, 1f)
+                                } else 0f
+
+                                LinearProgressIndicator(
+                                    progress = { progressFraction },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.surface
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // 4. Attached Photos Gallery (in reader view)
+                // 5. Attached Photos Gallery (in reader view)
                 if (attachedImages.isNotEmpty()) {
                     Text(
                         text = "Attached Photos (${attachedImages.size})",
@@ -751,7 +1021,7 @@ fun EntryEditorScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                 }
 
-                // 5. Diary Content Body (Clean readable typography)
+                // 6. Diary Content Body (Clean readable typography)
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -776,7 +1046,7 @@ fun EntryEditorScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 6. Action buttons: Copy / Switch to Edit
+                // 7. Action buttons: Copy / Switch to Edit
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -920,7 +1190,6 @@ fun EntryEditorScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Modal Date Picker Trigger
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -956,7 +1225,6 @@ fun EntryEditorScreen(
                         }
                     }
 
-                    // Modal Time Picker Trigger
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -1117,7 +1385,7 @@ fun EntryEditorScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf(
                         EntryIcon.INBOX to "Reflection",
@@ -1138,7 +1406,7 @@ fun EntryEditorScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(52.dp)
+                                .height(50.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(
                                     if (isChosen) MaterialTheme.colorScheme.primaryContainer
@@ -1156,7 +1424,7 @@ fun EntryEditorScreen(
                                 imageVector = iconVec,
                                 contentDescription = label,
                                 tint = if (isChosen) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
@@ -1164,56 +1432,255 @@ fun EntryEditorScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Photos / Images Section
+                // ==========================================
+                // VOICE AUDIO NOTE RECORDER (FEATURE 3)
+                // ==========================================
+                Text(
+                    text = "Voice Audio Memo",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (isRecordingAudio) {
+                    // Active Recording Card with timer and controls
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.error)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Recording Voice Note...",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Text(
+                                        text = AudioNoteManager.formatDuration(recordingElapsedMs),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { stopAudioRecordingSafe(save = false) },
+                                    shape = RoundedCornerShape(16.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text("Discard", style = MaterialTheme.typography.labelMedium)
+                                }
+
+                                Button(
+                                    onClick = { stopAudioRecordingSafe(save = true) },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Rounded.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Done", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                        }
+                    }
+                } else if (attachedAudioUri != null) {
+                    // Saved Audio Player Card in Edit Mode
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .clickable { toggleAudioPlayback() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isAudioPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                    contentDescription = if (isAudioPlaying) "Pause" else "Play",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Recorded Memo",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = AudioNoteManager.formatDuration(
+                                            if (isAudioPlaying) currentAudioProgressMs else attachedAudioDurationMs
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                val fraction = if (attachedAudioDurationMs > 0L) {
+                                    (currentAudioProgressMs.toFloat() / attachedAudioDurationMs.toFloat()).coerceIn(0f, 1f)
+                                } else 0f
+
+                                LinearProgressIndicator(
+                                    progress = { fraction },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.surface
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            IconButton(
+                                onClick = {
+                                    activeMediaPlayer?.release()
+                                    activeMediaPlayer = null
+                                    isAudioPlaying = false
+                                    attachedAudioUri?.let { File(it).delete() }
+                                    attachedAudioUri = null
+                                    attachedAudioDurationMs = 0L
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DeleteOutline,
+                                    contentDescription = "Delete audio note",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Record Button Trigger
+                    OutlinedButton(
+                        onClick = {
+                            val hasRecordPermission = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (hasRecordPermission) {
+                                startAudioRecordingSafe()
+                            } else {
+                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Mic,
+                            contentDescription = "Record Audio",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Record Voice Audio Note",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Photos / Images Section (Overflow-proof)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Attached Photos (${attachedImages.size})",
+                        text = "Photos (${attachedImages.size})",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Camera button
+                        // Safe Camera button with permission handling
                         OutlinedButton(
                             onClick = {
-                                val cacheDir = File(context.cacheDir, "camera").apply { mkdirs() }
-                                val tempFile = File(cacheDir, "temp_capture_${System.currentTimeMillis()}.jpg")
-                                tempCameraFile = tempFile
-                                val uri = FileProvider.getUriForFile(
+                                val hasCamPermission = ContextCompat.checkSelfPermission(
                                     context,
-                                    "${context.packageName}.fileprovider",
-                                    tempFile
-                                )
-                                tempCameraImageUri = uri
-                                cameraLauncher.launch(uri)
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasCamPermission) {
+                                    launchCameraSafe()
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
                             },
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.PhotoCamera,
                                 contentDescription = "Camera",
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text("Camera", style = MaterialTheme.typography.labelMedium)
                         }
 
                         // Gallery upload button
                         OutlinedButton(
                             onClick = { galleryLauncher.launch("image/*") },
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.AddPhotoAlternate,
                                 contentDescription = "Upload",
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text("Upload", style = MaterialTheme.typography.labelMedium)
                         }
                     }
@@ -1254,7 +1721,6 @@ fun EntryEditorScreen(
                                     )
                                 }
 
-                                // Delete X overlay button
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
@@ -1310,7 +1776,6 @@ fun EntryEditorScreen(
                     )
                 )
 
-                // Word and character count status
                 val wordCount = remember(content) {
                     if (content.isBlank()) 0 else content.trim().split(Regex("\\s+")).size
                 }

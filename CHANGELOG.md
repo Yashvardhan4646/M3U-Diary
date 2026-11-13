@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-11-13
+
+### Added
+- **Voice Audio Notes Recorder & Player**:
+  - Record personal voice memos directly inside entries using high-quality AAC compression (128 kbps, 44.1 kHz).
+  - Standalone audio playback player in both View-Only Reader and Editor modes.
+  - Scrubbable progress slider, elapsed/total time readout (`mm:ss`), and delete memo confirmation.
+  - Secure offline local storage in `context.filesDir/entry_audio/` with zero cloud requirements.
+  - Integrated runtime microphone permission prompt (`android.permission.RECORD_AUDIO`).
+
+### Fixed
+- **Camera Crash**: Resolved `SecurityException` by requesting `android.permission.CAMERA` at runtime prior to camera launcher activation, pre-allocating output images in internal cache, and expanding `file_paths.xml` provider mappings.
+- **App Name Customization Persistence**: Fixed silent filesystem rename failures in `PreferencesRepository`, re-keyed dialog state tracking on open, and added instant snackbar confirmation feedback.
+- **Button Structure & Overflow Layouts**:
+  - Eliminated TopAppBar text truncation and button overlapping on narrow screens with flexible weighted rows.
+  - Replaced fixed-width paddings in `ConnectedButtonGroup` with dynamic weights to prevent horizontal overflow on smaller screen sizes.
+  - Fixed button height wrapping across editor media and audio recording panels.
+
+---
+
 ## [1.1.0] - 2026-11-11
 
 ### Added

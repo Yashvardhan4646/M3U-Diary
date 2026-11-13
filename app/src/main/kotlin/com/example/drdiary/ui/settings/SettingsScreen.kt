@@ -868,6 +868,7 @@ fun SettingsScreen(
             onSave = { name, heading ->
                 scope.launch {
                     preferencesRepository.updateAppNameAndHeading(name, heading)
+                    snackbarHostState.showSnackbar("App identity updated: $name")
                 }
             },
             onDismiss = { showRenameDialog = false }

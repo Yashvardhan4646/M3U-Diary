@@ -80,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.drdiary.data.DiaryEntry
 import com.example.drdiary.data.DiaryRepository
@@ -212,11 +213,12 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .windowInsetsPadding(WindowInsets.statusBars)
                     ) {
-                        Box(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(64.dp)
-                                .padding(horizontal = 8.dp)
+                                .padding(horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Left 48dp button: Working Sidebar Hamburger Menu
                             IconButton(
@@ -225,9 +227,7 @@ fun HomeScreen(
                                         if (drawerState.isClosed) drawerState.open() else drawerState.close()
                                     }
                                 },
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .size(48.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Menu,
@@ -237,18 +237,21 @@ fun HomeScreen(
                                 )
                             }
 
-                            // Centered Title in titleLarge
+                            // Title with weight(1f) to prevent overflow
                             Text(
                                 text = preferences.appHeading,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.align(Alignment.Center)
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 8.dp)
                             )
 
                             // Right action buttons: Palette (theme switcher) + More options
                             Row(
-                                modifier = Modifier.align(Alignment.CenterEnd),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 IconButton(
@@ -837,6 +840,7 @@ fun HomeScreen(
             onSave = { name, heading ->
                 scope.launch {
                     preferencesRepository.updateAppNameAndHeading(name, heading)
+                    snackbarHostState.showSnackbar("App identity updated: $name")
                 }
             },
             onDismiss = { showRenameDialog = false }

@@ -32,5 +32,7 @@ data class DiaryEntry(
     val icon: EntryIcon = EntryIcon.INBOX,
     val tags: List<String> = emptyList(),
     val imageUris: List<String> = emptyList(),
+    val audioUri: String? = null,
+    val audioDurationMs: Long = 0L,
     val createdAt: Long = System.currentTimeMillis()
 )

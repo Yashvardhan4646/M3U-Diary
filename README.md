@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#-downloads--releases"><img src="https://img.shields.io/badge/Release-v1.1.0-6750A4?style=for-the-badge&logo=android&logoColor=white" alt="Release" /></a>
+  <a href="#-downloads--releases"><img src="https://img.shields.io/badge/Release-v1.2.0-6750A4?style=for-the-badge&logo=android&logoColor=white" alt="Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge" alt="License" /></a>
   <img src="https://img.shields.io/badge/Platform-Android_7.0%2B_(API_24--36)-brightgreen?style=for-the-badge&logo=android" alt="Platform" />
   <img src="https://img.shields.io/badge/Design-Material_3_Expressive-purple?style=for-the-badge" alt="Material 3 Expressive" />
@@ -49,6 +49,12 @@
 - **Prominent Edit Button on Top Right**: One-tap toggle (`Icons.Rounded.Edit`) transitions smoothly into edit mode.
 - **Rich Metadata Badges**: Prominent headline typography, mood emoji & description badge, category indicator, formatted date/time chips, word count, and copy text action.
 - **Media Viewer Carousel**: High-resolution attached photo cards with tap-to-enlarge full-screen preview.
+
+### 🎙️ Voice Audio Notes Recorder & Player
+- **In-App Voice Recording**: Record voice audio memos directly into your journal entries with active recording indicator.
+- **Crystal-Clear Compression**: Encoded in standard AAC MPEG-4 (`.m4a`) format at 44.1 kHz, 128 kbps.
+- **Embedded Audio Player**: Seamless playback bar in both View-Only Reader and Editor modes with Play/Pause controls, scrubbable progress bar, and duration timestamps (`mm:ss`).
+- **100% Offline & Private**: Audio files stay within the app's internal sandbox (`context.filesDir/entry_audio/`).
 
 ### ✍️ Guided Reflections & Journaling
 - **5 Guided Templates**: One-tap structured prompts (`🌅 Morning Gratitude`, `🌙 Evening Reflection`, `🏛️ Daily Stoic`, `💡 Brain Dump`, `🌿 Mindful Check-in`).
@@ -132,7 +138,8 @@ Pre-compiled, signed release APKs are available in the [`release/`](release/) di
 
 | Version | Artifact | Size | SHA-256 Checksum | Signature |
 | :--- | :--- | :--- | :--- | :--- |
-| **v1.1.0 (Latest)** | [`M3Diary-v1.1.0-release.apk`](release/M3Diary-v1.1.0-release.apk) | 12.23 MB | `2635F339533770F892C6186E63835E3C8E3BDCA6466BC940835E8D40FBF7C793` | Scheme v2 (Signed) |
+| **v1.2.0 (Latest)** | [`M3Diary-v1.2.0-release.apk`](release/M3Diary-v1.2.0-release.apk) | 12.26 MB | `B0ED943E5C01BCD860ED95D4C572A2E5E8C07F3EBB165E20E012C50409DC3CCB` | Scheme v2 (Signed) |
+| **v1.1.0** | [`M3Diary-v1.1.0-release.apk`](release/M3Diary-v1.1.0-release.apk) | 12.23 MB | `2635F339533770F892C6186E63835E3C8E3BDCA6466BC940835E8D40FBF7C793` | Scheme v2 (Signed) |
 | **v1.0.0** | [`M3Diary-v1.0.0-release.apk`](release/M3Diary-v1.0.0-release.apk) | 12.78 MB | `32C18B79C24477268704B8A2D0C91CD84A94B48867F0AA064B7983759337EE5A` | Scheme v2 (Signed) |
 
 ---

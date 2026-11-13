@@ -115,4 +115,33 @@ class DiaryDataTest {
         assertEquals("e2", anniversaryMatch?.id)
         assertEquals("Flashback", anniversaryMatch?.title)
     }
+
+    @Test
+    fun testAudioDurationFormatting() {
+        assertEquals("00:00", com.example.drdiary.data.AudioNoteManager.formatDuration(0L))
+        assertEquals("00:05", com.example.drdiary.data.AudioNoteManager.formatDuration(5_000L))
+        assertEquals("01:23", com.example.drdiary.data.AudioNoteManager.formatDuration(83_000L))
+        assertEquals("10:00", com.example.drdiary.data.AudioNoteManager.formatDuration(600_000L))
+    }
+
+    @Test
+    fun testDiaryEntryWithAudioSerialization() {
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val entry = DiaryEntry(
+            id = "audio-test-1",
+            title = "Voice Reflection",
+            content = "Recorded an audio note today.",
+            dateMillis = 1794304800000L,
+            dateFormatted = "Nov 13, 2026",
+            audioUri = "/data/user/0/com.example.drdiary/files/entry_audio/audio_123.m4a",
+            audioDurationMs = 45000L
+        )
+
+        val serialized = json.encodeToString(entry)
+        val deserialized = json.decodeFromString<DiaryEntry>(serialized)
+
+        assertEquals("audio-test-1", deserialized.id)
+        assertEquals("/data/user/0/com.example.drdiary/files/entry_audio/audio_123.m4a", deserialized.audioUri)
+        assertEquals(45000L, deserialized.audioDurationMs)
+    }
 }
